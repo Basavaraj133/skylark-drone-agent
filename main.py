@@ -1,7 +1,6 @@
 import streamlit as st
 import gspread
 import pandas as pd
-import json
 from google.oauth2.service_account import Credentials
 
 # ---------------- PAGE CONFIG ----------------
@@ -24,8 +23,9 @@ scope = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-# 🔑 Load credentials from Streamlit Secrets
-creds_dict = json.loads(st.secrets["gcp_service_account"])
+# ✅ READ FROM STREAMLIT SECRETS (NO JSON FILE, NO json.loads)
+creds_dict = dict(st.secrets["gcp_service_account"])
+
 creds = Credentials.from_service_account_info(
     creds_dict,
     scopes=scope
@@ -57,7 +57,6 @@ st.dataframe(missions)
 if user_command:
     cmd = user_command.lower()
 
-    # Show available pilots by location
     if "available pilots" in cmd:
         try:
             location = cmd.split("in")[-1].strip().title()
@@ -74,7 +73,6 @@ if user_command:
         except:
             st.error("❌ Could not process location query")
 
-    # Update pilot status → ON LEAVE
     elif "on leave" in cmd:
         try:
             name = user_command.split("on")[0].strip()
@@ -131,6 +129,7 @@ if urgent_reassign:
     else:
         for _, mission in urgent_missions.iterrows():
             st.markdown(f"### 🚨 Mission {mission['project_id']}")
+
             alternatives = pilots[
                 (pilots["status"] == "Available") &
                 (pilots["location"] == mission["location"]) &
@@ -142,4 +141,6 @@ if urgent_reassign:
                 st.error("❌ No suitable alternative pilot found.")
             else:
                 st.success("✅ Suggested Alternative Pilot(s)")
-                st.dataframe(alternatives[["name", "skills", "certifications", "location"]])
+                st.dataframe(
+                    alternatives[["name", "skills", "certifications", "location"]]
+                )
